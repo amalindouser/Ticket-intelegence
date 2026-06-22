@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: fti-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fti_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fti_password}
+      POSTGRES_DB: ${POSTGRES_DB:-freshdesk_ticket_intelegence}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fti_user} -d ${POSTGRES_DB:-freshdesk_ticket_intelegence}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:

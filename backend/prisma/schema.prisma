@@ -1,0 +1,273 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Ticket {
+  id                 String          @id @default(uuid()) @db.Uuid
+  freshdeskTicketId  BigInt          @unique @map("freshdesk_ticket_id")
+  subject            String
+  description        String?
+  status             Int
+  priority           Int
+  requesterEmail     String?         @map("requester_email")
+  assignedGroup      String?         @map("assigned_group")
+  assignedAgent      String?         @map("assigned_agent")
+  tags               String?
+  parentTicketId   String?         @map("parent_ticket_id") @db.Uuid
+  resolutionPath   String?         @map("resolution_path") @default("unknown")
+  createdAt        DateTime        @map("created_at") @default(now())
+  updatedAt        DateTime        @map("updated_at") @updatedAt
+
+  parentTicket   Ticket?        @relation("TicketChildren", fields: [parentTicketId], references: [id])
+  childTickets   Ticket[]       @relation("TicketChildren")
+  participants   Participant[]
+  attachments    Attachment[]
+  conversations  Conversation[]
+  escalations    Escalation[]
+  ticketHistory          TicketHistory[]
+  ticketHistories        TicketHistoryEntry[]
+  ticketConversations    TicketConversation[]
+  ticketGroupMovements   TicketGroupMovement[]
+
+  @@map("tickets")
+}
+
+model Participant {
+  id        String   @id @default(uuid()) @db.Uuid
+  ticketId  String   @map("ticket_id") @db.Uuid
+  email     String
+  role      String
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@map("participants")
+}
+
+model Attachment {
+  id            String     @id @default(uuid()) @db.Uuid
+  ticketId      String?    @map("ticket_id") @db.Uuid
+  escalationId  String?    @map("escalation_id") @db.Uuid
+  filename      String
+  contentType   String?    @map("content_type")
+  fileSize      Int?       @map("file_size")
+  attachmentUrl String?    @map("attachment_url")
+  createdAt     DateTime   @map("created_at") @default(now())
+
+  ticket     Ticket?     @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  escalation Escalation? @relation(fields: [escalationId], references: [id], onDelete: Cascade)
+
+  @@map("attachments")
+}
+
+model Escalation {
+  id        String       @id @default(uuid()) @db.Uuid
+  ticketId  String       @map("ticket_id") @db.Uuid
+  teamName  String       @map("team_name")
+  agentName String?      @map("agent_name")
+  notes     String?
+  createdAt DateTime     @map("created_at") @default(now())
+
+  ticket      Ticket       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  attachments Attachment[]
+
+  @@map("escalations")
+}
+
+model Conversation {
+  id                       String   @id @default(uuid()) @db.Uuid
+  freshdeskConversationId  BigInt   @unique @map("freshdesk_conversation_id")
+  ticketId                 String   @map("ticket_id") @db.Uuid
+  senderEmail              String?  @map("sender_email")
+  body                     String?
+  createdAt                DateTime @map("created_at") @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@map("conversations")
+}
+
+model TicketHistory {
+  id        String   @id @default(uuid()) @db.Uuid
+  ticketId  String   @map("ticket_id") @db.Uuid
+  fieldName String   @map("field_name")
+  oldValue  String?  @map("old_value")
+  newValue  String?  @map("new_value")
+  changedAt DateTime @map("changed_at") @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_history")
+}
+
+model GroupMapping {
+  id              String   @id @default(uuid()) @db.Uuid
+  groupId         String   @unique @map("group_id")
+  groupName       String   @map("group_name")
+  escalationEmail String?  @map("escalation_email")
+  createdAt       DateTime @map("created_at") @default(now())
+
+  @@map("group_mappings")
+}
+
+model ReferenceEmail {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String
+  name      String?  @map("name")
+  groupId   String?  @map("group_id")
+  role      String   @default("to")
+  source    String   @default("manual")
+
+  @@unique([email, groupId, role])
+  @@index([groupId])
+  @@index([email])
+  @@map("reference_emails")
+}
+
+model KnowledgeBase {
+  id              String   @id @default(uuid()) @db.Uuid
+  ticketId        String   @map("ticket_id")
+  timestamp       String?  @map("timestamp")
+  responseTime    String?  @map("response_time")
+  clientName      String?  @map("client_name")
+  pic             String?  @map("pic")
+  kategoriKendala String?  @map("kategori_kendala")
+  prioritas       String?  @map("prioritas")
+  deskripsiMasalah String? @map("deskripsi_masalah") @db.Text
+  status          String?  @map("status")
+  namaHelpdesk    String?  @map("nama_helpdesk")
+  rootCause       String?  @map("root_cause")
+  penyelesaian    String?  @map("penyelesaian") @db.Text
+  resolutionTime  String?  @map("resolution_time")
+  closeTime       String?  @map("close_time")
+  createdAt       DateTime @map("created_at") @default(now())
+
+  @@index([kategoriKendala])
+  @@index([clientName])
+  @@index([ticketId])
+  @@map("knowledge_base")
+}
+
+model Evidence {
+  id             String   @id @default(uuid()) @db.Uuid
+  ticketId       BigInt   @map("ticket_id")
+  conversationId BigInt?  @map("conversation_id")
+  source         String?  @default("ticket")
+  fileName       String   @map("file_name")
+  fileType       String   @map("file_type")
+  fileSize       Int?     @map("file_size")
+  filePath       String   @map("file_path")
+  extractedText  String?  @map("extracted_text") @db.Text
+  createdAt      DateTime @map("created_at") @default(now())
+  updatedAt      DateTime @map("updated_at") @updatedAt
+
+  @@index([ticketId])
+  @@index([conversationId])
+  @@index([fileType])
+  @@map("evidences")
+}
+
+model TicketHistoryEntry {
+  id           String   @id @default(uuid()) @db.Uuid
+  ticketId     String   @map("ticket_id") @db.Uuid
+  actorId      String?  @map("actor_id")
+  actorName    String?  @map("actor_name")
+  changedField String   @map("changed_field")
+  oldValue     String?  @map("old_value")
+  newValue     String?  @map("new_value")
+  createdAt    DateTime @map("created_at") @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@map("ticket_histories")
+}
+
+model TicketConversation {
+  id                   String   @id @default(uuid()) @db.Uuid
+  ticketId             String   @map("ticket_id") @db.Uuid
+  conversationId       BigInt   @unique @map("conversation_id")
+  body                 String?  @db.Text
+  bodyText             String?  @map("body_text") @db.Text
+  fromEmail            String?  @map("from_email")
+  actorName            String?  @map("actor_name")
+  isAgent              Boolean  @map("is_agent") @default(false)
+  responseTimeMinutes  Int?     @map("response_time_minutes")
+  createdAt            DateTime @map("created_at") @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@map("ticket_conversations")
+}
+
+model TicketGroupMovement {
+  id          String   @id @default(uuid()) @db.Uuid
+  ticketId    String   @map("ticket_id") @db.Uuid
+  fromGroupId String?  @map("from_group_id")
+  toGroupId   String?  @map("to_group_id")
+  movedAt     DateTime @map("moved_at") @default(now())
+  movedBy     String?  @map("moved_by")
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@map("ticket_group_movements")
+}
+
+model Agent {
+  id        String    @id @default(uuid()) @db.Uuid
+  email     String    @unique
+  name      String?
+  avatarUrl String?   @map("avatar_url")
+  password  String?
+  lastLogin DateTime? @map("last_login")
+  createdAt DateTime  @map("created_at") @default(now())
+
+  @@map("agents")
+}
+
+model SyncLog {
+  id           String    @id @default(uuid()) @db.Uuid
+  syncType     String    @map("sync_type")
+  totalTickets Int       @map("total_ticket")
+  startedAt    DateTime  @map("started_at")
+  finishedAt   DateTime? @map("finished_at")
+  status       String
+  errorMessage String?   @map("error_message")
+
+  @@map("sync_logs")
+}
+
+model TicketCluster {
+  id           String   @id @default(uuid()) @db.Uuid
+  ticketId     BigInt   @map("ticket_id")
+  clusterId    Int      @map("cluster_id")
+  clusterLabel String?  @map("cluster_label")
+  anomalyScore Float?   @map("anomaly_score")
+  method       String
+  createdAt    DateTime @map("created_at") @default(now())
+
+  @@unique([ticketId, method])
+  @@index([clusterId])
+  @@index([method])
+  @@map("ticket_clusters")
+}
+
+model ClusterMetadata {
+  id           String   @id @default(uuid()) @db.Uuid
+  clusterId    Int      @map("cluster_id")
+  label        String?
+  topKeywords  String?  @map("top_keywords") @db.Text
+  ticketCount  Int      @map("ticket_count")
+  method       String
+  createdAt    DateTime @map("created_at") @default(now())
+
+  @@unique([clusterId, method])
+  @@index([method])
+  @@map("cluster_metadata")
+}

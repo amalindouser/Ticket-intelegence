@@ -1,0 +1,31 @@
+{
+  "name": "freshdesk-ticket-intelligence-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "predev": "lsof -ti:3001 | xargs kill -9 2>/dev/null; exit 0",
+    "dev": "nodemon src/app.js",
+    "start": "node src/app.js",
+    "db:migrate": "npx prisma migrate dev --name init",
+    "db:generate": "npx prisma generate",
+    "db:studio": "npx prisma studio"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.14.0",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "density-clustering": "^1.3.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.3",
+    "ml-kmeans": "^7.0.1",
+    "multer": "^2.2.0",
+    "natural": "^8.1.1",
+    "node-fetch": "^3.3.2",
+    "tesseract.js": "^7.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0",
+    "prisma": "^5.14.0"
+  }
+}
