@@ -2,11 +2,11 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://server-anda.com/api/$1"
+      "destination": "https://suitable-step-logging-drops.trycloudflare.com/api/$1"
     },
     {
       "source": "/uploads/(.*)",
-      "destination": "https://server-anda.com/uploads/$1"
+      "destination": "https://suitable-step-logging-drops.trycloudflare.com/uploads/$1"
     },
     {
       "source": "/(.*)",
