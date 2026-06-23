@@ -2,11 +2,11 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://development-directions-redhead-times.trycloudflare.com/api/$1"
+      "destination": "https://accurate-delivers-movers-adequate.trycloudflare.com/api/$1"
     },
     {
       "source": "/uploads/(.*)",
-      "destination": "https://development-directions-redhead-times.trycloudflare.com/uploads/$1"
+      "destination": "https://accurate-delivers-movers-adequate.trycloudflare.com/uploads/$1"
     },
     {
       "source": "/(.*)",
