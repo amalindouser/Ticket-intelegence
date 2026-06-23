@@ -183,7 +183,10 @@ class EvidenceService {
     });
   }
 
-  async getTicketEvidences(ticketId) {
+  async getTicketEvidences(ticketId, _visited = new Set()) {
+    if (_visited.has(Number(ticketId))) return [];
+    _visited.add(Number(ticketId));
+
     const freshdeskAttachments = await this._extractAllAttachments(ticketId);
     const results = [];
 
@@ -217,6 +220,29 @@ class EvidenceService {
         if (ev) results.push(ev);
       }
     }
+
+    // Check for merged child tickets in Freshdesk conversations
+    try {
+      const conversations = await freshdesk.getConversations(ticketId);
+      const mergedIds = new Set();
+      for (const conv of conversations) {
+        const body = conv.body_text || conv.body || "";
+        const match = body.match(/(?:Ticket|Tickets)\s+with\s+IDs?\s+(\d[\d,\s]*\d)\s+is\s+merged\s+into\s+this\s+ticket/i);
+        if (match) {
+          match[1].split(/[,\s]+/).filter(Boolean).forEach((id) => {
+            const n = Number(id);
+            if (n && n !== Number(ticketId)) mergedIds.add(n);
+          });
+        }
+      }
+      for (const mergedId of mergedIds) {
+        const mergedEvs = await this.getTicketEvidences(mergedId, _visited);
+        for (const ev of mergedEvs) {
+          const existingEv = results.find((r) => r.fileName === ev.fileName);
+          if (!existingEv) results.push(ev);
+        }
+      }
+    } catch {}
 
     return results;
   }

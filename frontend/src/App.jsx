@@ -8,6 +8,7 @@ import Analytics from "./pages/Analytics";
 import KnowledgeBase from "./pages/KnowledgeBase";
 import Groups from "./pages/Groups";
 import Evidences from "./pages/Evidences";
+import Reports from "./pages/Reports";
 import Login from "./pages/Login";
 import ChatBot from "./components/ChatBot";
 import Footer from "./components/Footer";
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
   { to: "/kb", label: "KB", icon: "◇" },
   { to: "/evidences", label: "Evidences", icon: "▣" },
   { to: "/groups", label: "Groups", icon: "☰" },
+  { to: "/reports", label: "Reports", icon: "📊" },
 ];
 
 function Navbar() {
@@ -171,6 +173,7 @@ function AnimatedPages() {
           <Route path="/kb" element={<ProtectedRoute><KnowledgeBase /></ProtectedRoute>} />
           <Route path="/groups" element={<ProtectedRoute><Groups /></ProtectedRoute>} />
           <Route path="/evidences" element={<ProtectedRoute><Evidences /></ProtectedRoute>} />
+          <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
         </Routes>
     </div>
   );

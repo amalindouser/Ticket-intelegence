@@ -116,12 +116,16 @@ class SyncService {
             // skip conversation errors on bulk sync
           }
 
-          if (ft.attachments && ft.attachments.length > 0) {
-            const downloaded = await Promise.all(
-              ft.attachments.map((att) => this._resolveAttachment(att))
-            );
-            await ticketRepository.syncAttachments(ticket.id, downloaded);
-          }
+          try {
+            const detail = await freshdesk.getTicket(ft.id);
+            const attachments = detail.attachments || [];
+            if (attachments.length > 0) {
+              const downloaded = await Promise.all(
+                attachments.map((att) => this._resolveAttachment(att))
+              );
+              await ticketRepository.syncAttachments(ticket.id, downloaded);
+            }
+          } catch {}
         }
       }
 
@@ -226,12 +230,16 @@ class SyncService {
           await this._syncConversationEvidences(ticket.id, ft.id, conversations);
         }
       } catch {}
-      if (ft.attachments && ft.attachments.length > 0) {
-        const downloaded = await Promise.all(
-          ft.attachments.map((att) => this._resolveAttachment(att))
-        );
-        await ticketRepository.syncAttachments(ticket.id, downloaded);
-      }
+      try {
+        const detail = await freshdesk.getTicket(ft.id);
+        const attachments = detail.attachments || [];
+        if (attachments.length > 0) {
+          const downloaded = await Promise.all(
+            attachments.map((att) => this._resolveAttachment(att))
+          );
+          await ticketRepository.syncAttachments(ticket.id, downloaded);
+        }
+      } catch {}
     }
     return synced;
   }

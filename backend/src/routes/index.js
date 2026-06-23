@@ -11,6 +11,7 @@ import evidenceRoutes from "./evidence.routes.js";
 import clusteringRoutes from "./clustering.routes.js";
 import timelineRoutes from "./timeline.routes.js";
 import relationRoutes from "./relation.routes.js";
+import reportRoutes from "./report.routes.js";
 import authRoutes from "./auth.routes.js";
 
 const router = Router();
@@ -28,5 +29,6 @@ router.use("/kb", kbRoutes);
 router.use("/references", referenceRoutes);
 router.use("/clustering", clusteringRoutes);
 router.use("/relations", relationRoutes);
+router.use("/reports", reportRoutes);
 
 export default router;
