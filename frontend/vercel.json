@@ -2,11 +2,11 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://accurate-delivers-movers-adequate.trycloudflare.com/api/$1"
+      "destination": "https://larry-cradle-atm-forgot.trycloudflare.com/api/$1"
     },
     {
       "source": "/uploads/(.*)",
-      "destination": "https://accurate-delivers-movers-adequate.trycloudflare.com/uploads/$1"
+      "destination": "https://larry-cradle-atm-forgot.trycloudflare.com/uploads/$1"
     },
     {
       "source": "/(.*)",
