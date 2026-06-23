@@ -1,6 +1,6 @@
 import prisma from "../config/prisma.js";
 import freshdesk from "./freshdesk.service.js";
-import evidenceService from "./evidence.service.js";
+import evidenceService, { extractInlineImages } from "./evidence.service.js";
 
 class TicketConversationsService {
   async getConversations(ticketId) {
@@ -49,6 +49,7 @@ class TicketConversationsService {
 
         const evCount = await this._syncConversationAttachments(ticket.freshdeskTicketId, conversations);
         if (evCount > 0) evTotal += evCount;
+        await this._syncMergedParentEvidences(conversations);
       } catch {
         continue;
       }
@@ -79,6 +80,7 @@ class TicketConversationsService {
     }
 
     const evCount = await this._syncConversationAttachments(ticket.freshdeskTicketId, conversations);
+    await this._syncMergedParentEvidences(conversations);
 
     return { ticketId, synced: count, evidences: evCount };
   }
@@ -87,25 +89,62 @@ class TicketConversationsService {
     if (!Array.isArray(conversations)) return 0;
     let count = 0;
     for (const conv of conversations) {
-      if (!conv.attachments || conv.attachments.length === 0) continue;
-      for (const att of conv.attachments) {
-        const url = att.attachment_url?.url || att.url || att.attachment_url;
-        if (!url) continue;
-        const name = att.name || att.filename || `conv-attachment-${att.id}`;
-        const existing = await prisma.evidence.findFirst({
-          where: { ticketId: BigInt(freshdeskTicketId), fileName: name },
-        });
-        if (existing) continue;
-        try {
-          await evidenceService._processAttachment(
-            freshdeskTicketId, name, att.content_type, url, att.size,
-            { conversationId: conv.id, source: "conversation" }
-          );
-          count++;
-        } catch {}
+      if (conv.attachments && conv.attachments.length > 0) {
+        for (const att of conv.attachments) {
+          const url = att.attachment_url?.url || att.url || att.attachment_url;
+          if (!url) continue;
+          const name = att.name || att.filename || `conv-attachment-${att.id}`;
+          const existing = await prisma.evidence.findFirst({
+            where: { ticketId: BigInt(freshdeskTicketId), fileName: name },
+          });
+          if (existing) continue;
+          try {
+            await evidenceService._processAttachment(
+              freshdeskTicketId, name, att.content_type, url, att.size,
+              { conversationId: conv.id, source: "conversation" }
+            );
+            count++;
+          } catch {}
+        }
+      }
+      if (conv.body) {
+        const inlineImages = extractInlineImages(conv.body);
+        for (const img of inlineImages) {
+          const existing = await prisma.evidence.findFirst({
+            where: { ticketId: BigInt(freshdeskTicketId), fileName: img.name },
+          });
+          if (existing) continue;
+          try {
+            await evidenceService._processAttachment(
+              freshdeskTicketId, img.name, img.contentType, img.url, null,
+              { conversationId: conv.id, source: "conversation" }
+            );
+            count++;
+          } catch {}
+        }
       }
     }
     return count;
+  }
+
+  async _syncMergedParentEvidences(conversations) {
+    if (!Array.isArray(conversations)) return;
+    const mergeRegex = /This ticket is closed and merged into ticket (\d+)/i;
+    for (const conv of conversations) {
+      const body = conv.body_text || conv.body || "";
+      const match = body.match(mergeRegex);
+      if (match) {
+        const parentId = Number(match[1]);
+        if (!parentId) continue;
+        try {
+          const parentConvs = await freshdesk.getConversations(parentId);
+          if (parentConvs.length > 0) {
+            await this._syncConversationAttachments(parentId, parentConvs);
+          }
+        } catch {}
+        return;
+      }
+    }
   }
 
   async _enrichConversations(conversations, ticketId) {

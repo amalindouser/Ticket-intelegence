@@ -13,6 +13,24 @@ if (!fs.existsSync(EVIDENCE_DIR)) {
   fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
 }
 
+export function extractInlineImages(htmlBody) {
+  if (!htmlBody) return [];
+  const images = [];
+  const regex = /<img[^>]+src="(https:\/\/attachment\.freshdesk\.com\/inline\/attachment\?token=[^"]+)"[^>]*>/gi;
+  let match;
+  while ((match = regex.exec(htmlBody)) !== null) {
+    const src = match[1];
+    const idMatch = match[0].match(/data-id="(\d+)"/);
+    const id = idMatch ? idMatch[1] : `inline-${images.length}`;
+    images.push({
+      url: src,
+      name: `inline_image_${id}.png`,
+      contentType: "image/png",
+    });
+  }
+  return images;
+}
+
 const IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/gif", "image/bmp", "image/webp"];
 const PDF_TYPES = ["application/pdf"];
 const VIDEO_TYPES = ["video/mp4", "video/mpeg", "video/quicktime", "video/x-msvideo"];
@@ -93,6 +111,33 @@ class EvidenceService {
               source: "conversation",
             });
           }
+        }
+      }
+      if (conv.body) {
+        const inlineImages = extractInlineImages(conv.body);
+        for (const img of inlineImages) {
+          if (!attachments.some((a) => a.url === img.url)) {
+            attachments.push({
+              ...img,
+              id: `inline-${conv.id}-${img.name}`,
+              fileSize: null,
+              source: "conversation",
+            });
+          }
+        }
+      }
+    }
+
+    if (ticket.description) {
+      const inlineImages = extractInlineImages(ticket.description);
+      for (const img of inlineImages) {
+        if (!attachments.some((a) => a.url === img.url)) {
+          attachments.push({
+            ...img,
+            id: `inline-ticket-${img.name}`,
+            fileSize: null,
+            source: "ticket",
+          });
         }
       }
     }

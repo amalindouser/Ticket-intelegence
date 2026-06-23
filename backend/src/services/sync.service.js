@@ -3,7 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import freshdesk from "./freshdesk.service.js";
 import ticketRepository from "../repositories/ticket.repository.js";
-import evidenceService from "./evidence.service.js";
+import evidenceService, { extractInlineImages } from "./evidence.service.js";
 import relationService from "./relation.service.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -111,6 +111,7 @@ class SyncService {
             if (conversations.length > 0) {
               await ticketRepository.syncConversations(ticket.id, conversations);
               await this._syncConversationEvidences(ticket.id, ft.id, conversations);
+              await this._syncMergedParentEvidences(conversations);
             }
           } catch {
             // skip conversation errors on bulk sync
@@ -152,17 +153,29 @@ class SyncService {
   async _syncConversationEvidences(ticketId, freshdeskId, conversations) {
     if (!Array.isArray(conversations)) return;
     for (const conv of conversations) {
-      if (!conv.attachments || conv.attachments.length === 0) continue;
-      for (const att of conv.attachments) {
-        const url = att.attachment_url?.url || att.url || att.attachment_url;
-        if (!url) continue;
-        const name = att.name || att.filename || `conv-evidence-${att.id}`;
-        try {
-          await evidenceService._processAttachment(freshdeskId, name, att.content_type, url, att.size, {
-            conversationId: conv.id,
-            source: "conversation",
-          });
-        } catch {}
+      if (conv.attachments && conv.attachments.length > 0) {
+        for (const att of conv.attachments) {
+          const url = att.attachment_url?.url || att.url || att.attachment_url;
+          if (!url) continue;
+          const name = att.name || att.filename || `conv-evidence-${att.id}`;
+          try {
+            await evidenceService._processAttachment(freshdeskId, name, att.content_type, url, att.size, {
+              conversationId: conv.id,
+              source: "conversation",
+            });
+          } catch {}
+        }
+      }
+      if (conv.body) {
+        const inlineImages = extractInlineImages(conv.body);
+        for (const img of inlineImages) {
+          try {
+            await evidenceService._processAttachment(freshdeskId, img.name, img.contentType, img.url, null, {
+              conversationId: conv.id,
+              source: "conversation",
+            });
+          } catch {}
+        }
       }
     }
   }
@@ -192,6 +205,7 @@ class SyncService {
     const conversations = await freshdesk.getConversations(ticketId);
     await ticketRepository.syncConversations(ticket.id, conversations);
     await this._syncConversationEvidences(ticket.id, ft.id, conversations);
+    await this._syncMergedParentEvidences(conversations);
 
     if (ft.attachments && ft.attachments.length > 0) {
       const downloaded = await Promise.all(
@@ -228,6 +242,7 @@ class SyncService {
         if (conversations.length > 0) {
           await ticketRepository.syncConversations(ticket.id, conversations);
           await this._syncConversationEvidences(ticket.id, ft.id, conversations);
+          await this._syncMergedParentEvidences(conversations);
         }
       } catch {}
       try {
@@ -242,6 +257,26 @@ class SyncService {
       } catch {}
     }
     return synced;
+  }
+
+  async _syncMergedParentEvidences(conversations) {
+    if (!Array.isArray(conversations)) return;
+    const mergeRegex = /This ticket is closed and merged into ticket (\d+)/i;
+    for (const conv of conversations) {
+      const body = conv.body_text || conv.body || "";
+      const match = body.match(mergeRegex);
+      if (match) {
+        const parentId = Number(match[1]);
+        if (!parentId || parentId === conv.id) continue;
+        try {
+          const parentConvs = await freshdesk.getConversations(parentId);
+          if (parentConvs.length > 0) {
+            await this._syncConversationEvidences(parentId, parentId, parentConvs);
+          }
+        } catch {}
+        return;
+      }
+    }
   }
 
   async _syncParticipants(ticketId, ft, requesterEmail) {
