@@ -2,11 +2,11 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://recruiting-transition-arkansas-hobby.trycloudflare.com/api/$1"
+      "destination": "https://delegation-louisiana-leg-postcards.trycloudflare.com/api/$1"
     },
     {
       "source": "/uploads/(.*)",
-      "destination": "https://recruiting-transition-arkansas-hobby.trycloudflare.com/uploads/$1"
+      "destination": "https://delegation-louisiana-leg-postcards.trycloudflare.com/uploads/$1"
     },
     {
       "source": "/(.*)",
