@@ -2,11 +2,11 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://busy-department-monster-disable.trycloudflare.com/api/$1"
+      "destination": "https://recruiting-transition-arkansas-hobby.trycloudflare.com/api/$1"
     },
     {
       "source": "/uploads/(.*)",
-      "destination": "https://busy-department-monster-disable.trycloudflare.com/uploads/$1"
+      "destination": "https://recruiting-transition-arkansas-hobby.trycloudflare.com/uploads/$1"
     },
     {
       "source": "/(.*)",
