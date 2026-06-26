@@ -125,6 +125,7 @@ class SyncService {
                 attachments.map((att) => this._resolveAttachment(att))
               );
               await ticketRepository.syncAttachments(ticket.id, downloaded);
+              await this._syncTicketEvidences(ft.id, attachments);
             }
           } catch {}
         }
@@ -147,6 +148,20 @@ class SyncService {
         errorMessage: err.message,
       });
       throw err;
+    }
+  }
+
+  async _syncTicketEvidences(freshdeskId, attachments) {
+    if (!Array.isArray(attachments) || attachments.length === 0) return;
+    for (const att of attachments) {
+      const url = att.attachment_url?.url || att.url || att.attachment_url;
+      if (!url) continue;
+      const name = att.name || att.filename || `ticket-attachment-${att.id}`;
+      try {
+        await evidenceService._processAttachment(freshdeskId, name, att.content_type, url, att.size, {
+          source: "ticket",
+        });
+      } catch {}
     }
   }
 
@@ -212,6 +227,7 @@ class SyncService {
         ft.attachments.map((att) => this._resolveAttachment(att))
       );
       await ticketRepository.syncAttachments(ticket.id, downloaded);
+      await this._syncTicketEvidences(ft.id, ft.attachments);
     }
 
     await this._syncParticipants(ticket.id, ft, mapped.requesterEmail);
@@ -253,6 +269,7 @@ class SyncService {
             attachments.map((att) => this._resolveAttachment(att))
           );
           await ticketRepository.syncAttachments(ticket.id, downloaded);
+          await this._syncTicketEvidences(ft.id, attachments);
         }
       } catch {}
     }

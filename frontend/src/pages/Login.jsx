@@ -79,10 +79,6 @@ export default function Login() {
               {loading ? "Memuat..." : "Masuk"}
             </button>
           </form>
-
-          <p className="text-[11px] text-gray-400 text-center mt-6">
-            Demo: gunakan email agent + password <span className="font-mono text-navy font-medium">nama123</span>
-          </p>
         </div>
       </div>
     </div>

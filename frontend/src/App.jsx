@@ -10,9 +10,7 @@ import Groups from "./pages/Groups";
 import Evidences from "./pages/Evidences";
 import Reports from "./pages/Reports";
 import Login from "./pages/Login";
-import ChatBot from "./components/ChatBot";
 import Footer from "./components/Footer";
-import { ChatProvider } from "./context/ChatContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 const NAV_ITEMS = [
@@ -179,19 +177,25 @@ function AnimatedPages() {
   );
 }
 
-export default function App() {
+function Layout() {
+  const location = useLocation();
+  const hideNavbar = location.pathname === "/login";
+
   return (
-    <AuthProvider>
-    <ChatProvider>
     <div className="min-h-screen flex flex-col">
-      <Navbar />
+      {!hideNavbar && <Navbar />}
       <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-8 flex-1 w-full">
         <AnimatedPages />
       </main>
       <Footer />
-      <ChatBot />
     </div>
-    </ChatProvider>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <Layout />
     </AuthProvider>
   );
 }

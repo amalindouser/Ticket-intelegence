@@ -3,7 +3,6 @@ import { useParams, Link } from "react-router-dom";
 import Timeline from "../components/Timeline";
 import Card from "../components/Card";
 import useGroupMappings from "../hooks/useGroupMappings";
-import { useChat } from "../context/ChatContext";
 
 const STATUS = ["", "", "Open", "Pending", "Resolved", "Closed"];
 const PRIORITY = ["", "Low", "Medium", "High", "Urgent"];
@@ -17,7 +16,6 @@ const STATUS_BADGE = {
 
 export default function TicketDetail() {
   const { resolve } = useGroupMappings();
-  const { setTicketId } = useChat();
   const { id } = useParams();
   const [ticket, setTicket] = useState(null);
   const [timeline, setTimeline] = useState(null);
@@ -424,6 +422,17 @@ function SuggestionCard({ suggestion }) {
   );
 }
 
+function getEmails(participants, role) {
+  if (!participants) return [];
+  return participants.filter((p) => p.role === role).map((p) => p.email);
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function AiOutputBox({ title, text, color, borderColor }) {
   return (
     <div className="rounded-lg p-4 mt-3 border" style={{ background: color, borderColor }}>
@@ -437,15 +446,4 @@ function AiOutputBox({ title, text, color, borderColor }) {
       <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{text}</p>
     </div>
   );
-}
-
-function getEmails(participants, role) {
-  if (!participants) return [];
-  return participants.filter((p) => p.role === role).map((p) => p.email);
-}
-
-function formatSize(bytes) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }

@@ -216,9 +216,14 @@ export async function generateReply(ticketId) {
   const resolvedSimilar = similar.filter((t) => t.status === 4 || t.status === 5);
   const ctx = buildContext(ticket, resolvedSimilar);
 
-  const prompt = `Kamu adalah agen support helpdesk. Berdasarkan informasi tiket berikut, buat draft balasan profesional dalam Bahasa Indonesia untuk pengguna tiketing ini.
+  const prompt = `Kamu adalah agen support helpdesk. Buat draft balasan profesional dalam Bahasa Indonesia untuk PENGIRIM PESAN TERAKHIR di tiket ini.
 
-Gunakan informasi dari tiket serupa yang sudah terselesaikan sebagai referensi. Balasan harus sopan, informatif, dan langsung ke pokok permasalahan.
+INSTRUKSI:
+1. Baca dengan saksama seluruh percakapan di bawah — terutama pesan terakhir dari pengirim (requester).
+2. Balaslah secara spesifik menanggapi isi pesan terakhir tersebut, jangan membuat balasan generik.
+3. Jika pesan terakhir berisi pertanyaan, jawab pertanyaannya. Jika berisi laporan masalah, tanggapi masalah tersebut.
+4. Gunakan tiket serupa yang sudah terselesaikan sebagai referensi gaya penanganan.
+5. Balasan harus sopan, informatif, dan langsung ke pokok permasalahan.
 
 Konteks Tiket:
 ${ctx}
