@@ -2,11 +2,11 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://delegation-louisiana-leg-postcards.trycloudflare.com/api/$1"
+      "destination": "https://hull-virtual-roles-stopping.trycloudflare.com/api/$1"
     },
     {
       "source": "/uploads/(.*)",
-      "destination": "https://delegation-louisiana-leg-postcards.trycloudflare.com/uploads/$1"
+      "destination": "https://hull-virtual-roles-stopping.trycloudflare.com/uploads/$1"
     },
     {
       "source": "/(.*)",
