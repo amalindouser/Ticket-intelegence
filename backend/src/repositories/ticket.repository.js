@@ -189,10 +189,15 @@ class TicketRepository {
       const url = typeof att.attachment_url === "string"
         ? att.attachment_url
         : att.attachment_url?.url || att.url || null;
+      const name = att.name || att.filename || "unknown";
+      const existing = await prisma.attachment.findFirst({
+        where: { ticketId, filename: name, attachmentUrl: url },
+      });
+      if (existing) continue;
       await prisma.attachment.create({
         data: {
           ticketId,
-          filename: att.name || att.filename || "unknown",
+          filename: name,
           contentType: att.content_type,
           fileSize: att.size ? Number(att.size) : null,
           attachmentUrl: url,

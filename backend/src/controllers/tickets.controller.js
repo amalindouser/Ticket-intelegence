@@ -19,6 +19,15 @@ export async function getTicket(req, res, next) {
   try {
     const ticket = await ticketRepository.findById(req.params.id);
     if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+    if (ticket.attachments) {
+      const seen = new Set();
+      ticket.attachments = ticket.attachments.filter((a) => {
+        const key = a.filename || a.attachmentUrl || a.id;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
     res.json(ticket);
   } catch (err) {
     next(err);
