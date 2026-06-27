@@ -398,8 +398,11 @@ class TicketRepository {
   }
 
   async findSimilar(ticketId) {
-    const ticket = await prisma.ticket.findUnique({
-      where: { id: ticketId },
+    const where = ticketId.includes("-")
+      ? { id: ticketId }
+      : { freshdeskTicketId: BigInt(ticketId) };
+    const ticket = await prisma.ticket.findFirst({
+      where,
       select: {
         id: true,
         subject: true,
