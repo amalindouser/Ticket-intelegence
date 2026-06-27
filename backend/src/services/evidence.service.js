@@ -79,12 +79,14 @@ class EvidenceService {
       // conversations API may be restricted
     }
 
+    const seenUrls = new Set();
     const attachments = [];
 
     if (ticket.attachments && ticket.attachments.length > 0) {
       for (const att of ticket.attachments) {
         const url = att.attachment_url?.url || att.url || att.attachment_url;
-        if (url) {
+        if (url && !seenUrls.has(url)) {
+          seenUrls.add(url);
           attachments.push({
             id: att.id,
             name: att.name || att.filename || `attachment-${att.id}`,
@@ -101,7 +103,8 @@ class EvidenceService {
       if (conv.attachments && conv.attachments.length > 0) {
         for (const att of conv.attachments) {
           const url = att.attachment_url?.url || att.url || att.attachment_url;
-          if (url) {
+          if (url && !seenUrls.has(url)) {
+            seenUrls.add(url);
             attachments.push({
               id: att.id,
               name: att.name || att.filename || `attachment-${att.id}`,
@@ -204,7 +207,13 @@ class EvidenceService {
       : classifyTypeByExt(name);
 
     const existing = await prisma.evidence.findFirst({
-      where: { ticketId: BigInt(ticketId), fileName: name },
+      where: {
+        ticketId: BigInt(ticketId),
+        OR: [
+          { fileName: name },
+          { filePath: { contains: path.basename(url) } },
+        ],
+      },
     });
     if (existing) return existing;
 

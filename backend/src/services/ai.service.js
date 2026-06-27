@@ -256,19 +256,20 @@ export async function generateReply(ticketId) {
   const resolvedSimilar = similar.filter((t) => t.status === 4 || t.status === 5);
   const ctx = buildContext(ticket, resolvedSimilar);
 
-  const prompt = `Kamu adalah agen support helpdesk. Buat draft balasan profesional dalam Bahasa Indonesia untuk PENGIRIM PESAN TERAKHIR di tiket ini.
+  const prompt = `Kamu adalah agen helpdesk Aino Indonesia. Bikin draft balasan dalam Bahasa Indonesia yang natural dan santai untuk PENGIRIM PESAN TERAKHIR di tiket ini.
 
 INSTRUKSI:
-1. Baca dengan saksama seluruh percakapan di bawah — terutama pesan terakhir dari pengirim (requester).
-2. Balaslah secara spesifik menanggapi isi pesan terakhir tersebut, jangan membuat balasan generik.
-3. Jika pesan terakhir berisi pertanyaan, jawab pertanyaannya. Jika berisi laporan masalah, tanggapi masalah tersebut.
-4. Gunakan tiket serupa yang sudah terselesaikan sebagai referensi gaya penanganan.
-5. Balasan harus sopan, informatif, dan langsung ke pokok permasalahan.
+1. Baca percakapan di bawah, terutama pesan terakhir dari pengirim.
+2. Balas secara spesifik menanggapi isi pesan terakhir — jangan generic.
+3. Gunakan bahasa Indonesia sehari-hari yang sopan tapi tidak kaku. Hindari kata-kata formal berlebihan seperti "dapat digunakan sebagaimana mestinya", "hormati kami", "Bapak/Ibu" (cukup pakai nama atau "Anda").
+4. Tujuannya: pelanggan merasa dibantu teman, bukan robot.
+5. Jika pesan terakhir berisi pertanyaan, jawab. Jika laporan masalah, tanggapi dengan empati.
+6. Pakai tiket serupa yang sudah selesai sebagai referensi.
 
 Konteks Tiket:
 ${ctx}
 
-Hasilkan hanya draft balasan saja, tanpa penjelasan tambahan atau prefiks.`;
+Hasilkan hanya draft balasan saja, tanpa embel-embel.`;
 
   const reply = await callAI(prompt);
   return { reply, model: MODEL, type: "reply" };
