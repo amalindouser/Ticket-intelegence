@@ -2,7 +2,7 @@ import prisma from "../config/prisma.js";
 import ticketRepository from "../repositories/ticket.repository.js";
 
 const OLLAMA_URL = "http://127.0.0.1:11434/api/generate";
-const MODEL = "llama3.2";
+const MODEL = process.env.OLLAMA_MODEL || "llama3.2:1b";
 const STATUS_LABELS = { 1: "Open", 2: "Open", 3: "Pending", 4: "Resolved", 5: "Closed" };
 const PRIORITY_LABELS = { 1: "Low", 2: "Medium", 3: "High", 4: "Urgent" };
 const CLUSTER_NAMES = {
