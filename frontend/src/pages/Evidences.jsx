@@ -17,36 +17,69 @@ const FILE_TYPE_ICONS = {
   other: "\u{1F4CE}",
 };
 
+async function fetchBlob(url) {
+  const token = localStorage.getItem("token");
+  const headers = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(url, { headers });
+  if (!res.ok) throw new Error("Gagal mengambil file");
+  const ct = res.headers.get("Content-Type") || "";
+  if (ct.includes("text/html")) throw new Error("Preview file tidak tersedia");
+  const blob = await res.blob();
+  return { blob, contentType: ct };
+}
+
+function triggerDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
 function PreviewModal({ evidence, onClose, onDelete }) {
-  const [ready, setReady] = useState(false);
+  const [blobUrl, setBlobUrl] = useState(null);
+  const [contentType, setContentType] = useState("");
   const [error, setError] = useState(false);
-  const [contentType, setContentType] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!evidence) return;
-    setReady(false);
+    setBlobUrl(null);
+    setContentType("");
     setError(false);
-    setContentType(null);
+    setLoading(true);
 
-    fetch(`/api/evidences/${evidence.id}/download`, { method: "HEAD" })
-      .then((r) => {
-        const ct = r.headers.get("Content-Type") || "";
-        setContentType(ct);
-        if (ct.includes("text/html") || !r.ok) {
-          setError(true);
-        } else {
-          setReady(true);
-        }
+    fetchBlob(`/api/evidences/${evidence.id}/download`)
+      .then(({ blob, contentType }) => {
+        setContentType(contentType);
+        setBlobUrl(URL.createObjectURL(blob));
       })
-      .catch(() => setError(true));
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+
+    return () => {
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
   }, [evidence]);
+
+  async function handleDownload() {
+    try {
+      const { blob } = await fetchBlob(`/api/evidences/${evidence.id}/download`);
+      triggerDownload(blob, evidence.fileName);
+    } catch {
+      alert("Gagal mengunduh file");
+    }
+  }
 
   if (!evidence) return null;
 
-  const downloadUrl = `/api/evidences/${evidence.id}/download`;
-  const isImage = evidence.fileType === "image" && ready;
-  const isPdf = evidence.fileType === "pdf" && ready;
-  const isVideo = evidence.fileType === "video" && ready;
+  const isImage = blobUrl && contentType.startsWith("image/");
+  const isPdf = blobUrl && contentType.includes("pdf");
+  const isVideo = blobUrl && contentType.startsWith("video/");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
@@ -55,7 +88,7 @@ function PreviewModal({ evidence, onClose, onDelete }) {
           <h3 className="font-semibold text-lg truncate pr-4">{evidence.fileName}</h3>
           <div className="flex items-center gap-2">
             <button
-              onClick={(e) => { e.stopPropagation(); window.open(downloadUrl, "_blank"); }}
+              onClick={(e) => { e.stopPropagation(); handleDownload(); }}
               className="text-primary hover:text-primary-dark text-sm font-medium px-3 py-1 border border-primary rounded-lg"
             >
               Download
@@ -80,25 +113,25 @@ function PreviewModal({ evidence, onClose, onDelete }) {
               Preview file tidak tersedia.
             </div>
           )}
-          {!ready && !error && (
+          {loading && (
             <div className="flex items-center justify-center h-32 bg-gray-50 rounded-lg text-gray-400">
               Memuat...
             </div>
           )}
           {isImage && (
-            <img src={downloadUrl} alt={evidence.fileName} className="max-w-full rounded-lg" />
+            <img src={blobUrl} alt={evidence.fileName} className="max-w-full rounded-lg" />
           )}
           {isPdf && (
-            <iframe src={downloadUrl} className="w-full h-96 rounded-lg border" title={evidence.fileName} />
+            <iframe src={blobUrl} className="w-full h-96 rounded-lg border" title={evidence.fileName} />
           )}
           {isVideo && (
             <video controls className="w-full rounded-lg">
-              <source src={downloadUrl} />
+              <source src={blobUrl} />
             </video>
           )}
-          {!error && ready && !isImage && !isPdf && !isVideo && (
+          {!error && !loading && blobUrl && !isImage && !isPdf && !isVideo && (
             <div className="flex items-center justify-center h-32 bg-gray-50 rounded-lg text-gray-400">
-              <a href={downloadUrl} target="_blank" rel="noreferrer" className="text-primary underline">Download {evidence.fileName}</a>
+              <button onClick={handleDownload} className="text-primary underline text-sm">Download {evidence.fileName}</button>
             </div>
           )}
           <div className="grid grid-cols-2 gap-4 text-sm">
@@ -296,7 +329,13 @@ export default function Evidences() {
                         <button
                           className="text-primary hover:text-primary-dark text-sm font-medium mr-2"
                           title="Download"
-                          onClick={(e) => { e.stopPropagation(); window.open(`/api/evidences/${ev.id}/download`, "_blank"); }}
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            try {
+                              const { blob } = await fetchBlob(`/api/evidences/${ev.id}/download`);
+                              triggerDownload(blob, ev.fileName);
+                            } catch { alert("Gagal mengunduh file"); }
+                          }}
                         >
                           Download
                         </button>
