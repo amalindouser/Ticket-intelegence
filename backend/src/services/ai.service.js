@@ -3,6 +3,11 @@ import ticketRepository from "../repositories/ticket.repository.js";
 
 const OLLAMA_URL = "http://127.0.0.1:11434/api/generate";
 const MODEL = process.env.OLLAMA_MODEL || "llama3.2:1b";
+
+const AI_PROVIDER = process.env.AI_PROVIDER || "ollama";
+const AI_API_KEY = process.env.AI_API_KEY;
+const AI_API_URL = process.env.AI_API_URL || "https://api.groq.com/openai/v1/chat/completions";
+const AI_MODEL = process.env.AI_MODEL || "llama3-8b-8192";
 const STATUS_LABELS = { 1: "Open", 2: "Open", 3: "Pending", 4: "Resolved", 5: "Closed" };
 const PRIORITY_LABELS = { 1: "Low", 2: "Medium", 3: "High", 4: "Urgent" };
 const CLUSTER_NAMES = {
@@ -12,6 +17,27 @@ const CLUSTER_NAMES = {
   1010: "Deployment / TI", 1011: "Ezitama", 1012: "EOI / Vendor",
   1013: "Internal AINO", 1014: "Spam", 1015: "Jasa Sarana",
 };
+
+async function callExternalAI(prompt) {
+  const res = await fetch(AI_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${AI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: AI_MODEL,
+      messages: [{ role: "user", content: prompt }],
+      stream: false,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`AI API error: ${res.status} ${text}`);
+  }
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content?.trim() || "";
+}
 
 async function callOllama(prompt) {
   const res = await fetch(OLLAMA_URL, {
@@ -27,7 +53,21 @@ async function callOllama(prompt) {
   return data.response.trim();
 }
 
-async function* callOllamaStreamRaw(prompt) {
+async function callAI(prompt) {
+  if (AI_PROVIDER !== "ollama") {
+    if (!AI_API_KEY) throw new Error("AI_API_KEY is required for external AI provider");
+    return callExternalAI(prompt);
+  }
+  return callOllama(prompt);
+}
+
+async function* callAIStreamRaw(prompt) {
+  if (AI_PROVIDER !== "ollama") {
+    const reply = await callAI(prompt);
+    for (const char of reply) yield char;
+    return;
+  }
+
   const res = await fetch(OLLAMA_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -230,7 +270,7 @@ ${ctx}
 
 Hasilkan hanya draft balasan saja, tanpa penjelasan tambahan atau prefiks.`;
 
-  const reply = await callOllama(prompt);
+  const reply = await callAI(prompt);
   return { reply, model: MODEL, type: "reply" };
 }
 
@@ -752,12 +792,12 @@ Pertanyaan: ${message}
 Jawab secara alami dan informatif dalam Bahasa Indonesia. Jika tidak punya data spesifik, tawarkan bantuan seperti "Coba tanya detail tiket, referensi email grup, atau ringkasan dashboard." JANGAN mengaku melakukan aksi.`;
 
   if (onLLMChunk) {
-    for await (const chunk of callOllamaStreamRaw(prompt)) {
+    for await (const chunk of callAIStreamRaw(prompt)) {
       onLLMChunk(chunk);
     }
     return;
   }
-  const reply = await callOllama(prompt);
+  const reply = await callAI(prompt);
   return { reply, model: MODEL, type: 'chat' };
 }
 
@@ -805,6 +845,6 @@ ${ctx}
 
 Hasilkan hanya draft pesan saja, tanpa penjelasan tambahan.`;
 
-  const reply = await callOllama(prompt);
+  const reply = await callAI(prompt);
   return { reply, model: MODEL, type: "escalation" };
 }
