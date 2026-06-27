@@ -440,7 +440,7 @@ class TicketRepository {
 
     const similar = await prisma.ticket.findMany({
       where: {
-        id: { not: ticketId },
+        id: { not: ticket.id },
         OR: conditions,
       },
       take: 10,
