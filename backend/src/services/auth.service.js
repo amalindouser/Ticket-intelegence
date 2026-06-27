@@ -3,14 +3,16 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET || JWT_SECRET.length < 32) {
+  throw new Error("JWT_SECRET must be set in environment (min 32 characters)");
+}
 const JWT_EXPIRES = "7d";
 
 export async function login(email, password) {
   const agent = await prisma.agent.findUnique({ where: { email: email.toLowerCase().trim() } });
-  if (!agent) throw new Error("Email tidak terdaftar");
-  if (!agent.password) throw new Error("Akun ini belum memiliki password");
+  if (!agent || !agent.password) throw new Error("Email atau password salah");
   const valid = await bcrypt.compare(password, agent.password);
-  if (!valid) throw new Error("Password salah");
+  if (!valid) throw new Error("Email atau password salah");
   await prisma.agent.update({ where: { id: agent.id }, data: { lastLogin: new Date() } });
   const token = jwt.sign({ id: agent.id, email: agent.email, name: agent.name }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
   return { token, agent: { id: agent.id, email: agent.email, name: agent.name } };

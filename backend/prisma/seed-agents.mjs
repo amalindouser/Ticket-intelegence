@@ -26,7 +26,8 @@ async function seed() {
     distinct: ['actorName'],
   });
 
-  const hash = await bcrypt.hash('aino123', 10);
+  const defaultPassword = process.env.DEFAULT_AGENT_PASSWORD || "aino123";
+  const hash = await bcrypt.hash(defaultPassword, 10);
   let created = 0;
 
   for (const a of unique) {
@@ -55,14 +56,14 @@ async function seed() {
   const adminEmail = 'admin@ainosi.co.id';
   const adminExists = await prisma.agent.findUnique({ where: { email: adminEmail } });
   if (!adminExists) {
-    await prisma.agent.create({ data: { email: adminEmail, name: 'Admin', password: await bcrypt.hash('admin123', 10) } });
+    const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
+    await prisma.agent.create({ data: { email: adminEmail, name: 'Admin', password: await bcrypt.hash(adminPassword, 10) } });
     created++;
   }
 
   console.log('Seeded', created, 'new agents');
   const all = await prisma.agent.findMany({ select: { email: true, name: true } });
   console.log('Total:', all.length);
-  all.forEach(a => console.log('  -', a.email, '(' + (a.name || '?') + ')'));
   await prisma.$disconnect();
 }
 seed().catch(e => { console.error(e); process.exit(1); });

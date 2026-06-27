@@ -39,7 +39,8 @@ export async function downloadEvidence(req, res, next) {
   try {
     const ev = await evidenceService.downloadEvidence(req.params.id);
     if (!ev) return res.status(404).json({ error: "Evidence tidak ditemukan" });
-    res.setHeader("Content-Disposition", `inline; filename="${ev.fileName}"`);
+    const safeName = ev.fileName.replace(/[^\w.\- ]/g, "_");
+    res.setHeader("Content-Disposition", `inline; filename="${safeName}"`);
     res.sendFile(ev.filePath);
   } catch (err) { next(err); }
 }

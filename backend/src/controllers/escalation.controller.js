@@ -36,6 +36,17 @@ export async function addEvidence(req, res, next) {
       return res.status(400).json({ error: "file or attachmentUrl is required" });
     }
 
+    if (!req.file && attachmentUrl && !attachmentUrl.startsWith("/uploads/")) {
+      try {
+        const parsed = new URL(attachmentUrl);
+        if (!["http:", "https:"].includes(parsed.protocol)) {
+          return res.status(400).json({ error: "Invalid URL protocol" });
+        }
+      } catch {
+        return res.status(400).json({ error: "Invalid URL" });
+      }
+    }
+
     const evidence = await ticketRepository.addEscalationEvidence(id, {
       filename,
       contentType,

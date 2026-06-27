@@ -150,6 +150,21 @@ class EvidenceService {
 
   async _downloadAttachment(url, filename) {
     if (!url) return null;
+    let parsed;
+    try {
+      parsed = new URL(url);
+    } catch {
+      return null;
+    }
+    const allowedHosts = [
+      "freshdesk.com", "s3.amazonaws.com", "s3-", "attachment.freshdesk.com",
+      "ainosi.freshdesk.com", "ainoindonesia.freshdesk.com",
+      ...(process.env.ALLOWED_DOWNLOAD_HOSTS || "").split(",").filter(Boolean),
+    ];
+    const host = parsed.hostname;
+    if (!allowedHosts.some((a) => host === a || host.endsWith("." + a) || host.startsWith(a))) {
+      return null;
+    }
     const ext = path.extname(filename) || ".bin";
     const safe = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
     const dest = path.join(EVIDENCE_DIR, safe);
@@ -349,7 +364,9 @@ class EvidenceService {
   async downloadEvidence(id) {
     const ev = await prisma.evidence.findUnique({ where: { id } });
     if (!ev) return null;
-    const filePath = path.join(__dirname, "../..", ev.filePath);
+    const uploadsDir = path.resolve(__dirname, "../../uploads");
+    const filePath = path.resolve(path.join(__dirname, "../..", ev.filePath));
+    if (!filePath.startsWith(uploadsDir)) return null;
     if (!fs.existsSync(filePath)) return null;
     return { ...ev, filePath };
   }
@@ -357,7 +374,9 @@ class EvidenceService {
   async deleteEvidence(id) {
     const ev = await prisma.evidence.findUnique({ where: { id } });
     if (!ev) throw new Error("Evidence not found");
-    const filePath = path.join(__dirname, "../..", ev.filePath);
+    const uploadsDir = path.resolve(__dirname, "../../uploads");
+    const filePath = path.resolve(path.join(__dirname, "../..", ev.filePath));
+    if (!filePath.startsWith(uploadsDir)) throw new Error("Invalid file path");
     try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch {}
     await prisma.evidence.delete({ where: { id } });
     return ev;

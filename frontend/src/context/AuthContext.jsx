@@ -2,7 +2,12 @@ import { createContext, useContext, useState, useEffect } from "react";
 
 const origFetch = typeof window !== "undefined" ? window.fetch : null;
 if (origFetch) {
+  const API_ORIGIN = window.location.origin;
   window.fetch = function (input, init = {}) {
+    const requestUrl = typeof input === "string" ? input : input?.url;
+    if (!requestUrl || (!requestUrl.startsWith("/") && !requestUrl.startsWith(API_ORIGIN))) {
+      return origFetch.call(this, input, init);
+    }
     const token = localStorage.getItem("token");
     if (token) {
       init.headers = init.headers || {};

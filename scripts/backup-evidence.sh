@@ -18,7 +18,7 @@ fi
 
 # 2. Database dump
 echo "Dumping database..."
-PGPASSWORD="${DB_PASSWORD:-fti_pass}" pg_dump \
+PGPASSWORD="${DB_PASSWORD:?DB_PASSWORD environment variable required}" pg_dump \
   -h "${DB_HOST:-localhost}" -p "${DB_PORT:-5433}" \
   -U "${DB_USER:-fti_user}" -d "${DB_NAME:-freshdesk_ticket_intelegence}" \
   -F c -f "$OUTPUT/database.dump"

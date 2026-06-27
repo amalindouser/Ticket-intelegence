@@ -375,6 +375,20 @@ class SyncService {
 
   async _downloadAttachment(url, filename) {
     if (!url || url.startsWith("/uploads/")) return url;
+    let parsed;
+    try {
+      parsed = new URL(url);
+    } catch {
+      return url;
+    }
+    const allowedHosts = [
+      "freshdesk.com", "s3.amazonaws.com", "s3-", "attachment.freshdesk.com",
+      "ainosi.freshdesk.com", "ainoindonesia.freshdesk.com",
+    ];
+    const host = parsed.hostname;
+    if (!allowedHosts.some((a) => host === a || host.endsWith("." + a) || host.startsWith(a))) {
+      return url;
+    }
     const ext = path.extname(filename) || ".bin";
     const safe = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
     const dest = path.join(UPLOAD_DIR, safe);

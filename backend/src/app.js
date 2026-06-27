@@ -23,7 +23,18 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const POLL_INTERVAL = 25_000;
 
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'", process.env.CORS_ORIGIN || "https://amalindo.my.id"].filter(Boolean).join(" "),
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
 
 const corsOrigin = process.env.CORS_ORIGIN || "https://amalindo.my.id";
 app.use(cors({
@@ -51,13 +62,16 @@ const loginLimiter = rateLimit({
 });
 app.use("/api/auth/login", loginLimiter);
 
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
-
 app.use("/api", (req, res, next) => {
   if (req.method === "OPTIONS") return next();
   if (req.path.startsWith("/auth/login")) return next();
   authMiddleware(req, res, next);
 });
+
+app.use("/uploads", (req, res, next) => {
+  if (req.method === "OPTIONS") return next();
+  authMiddleware(req, res, next);
+}, express.static(path.join(__dirname, "../uploads")));
 
 app.use("/api", routes);
 
@@ -66,7 +80,10 @@ app.get("/health", (_req, res) => {
 });
 
 app.use((err, _req, res, _next) => {
-  console.error(err.stack);
+  console.error(err.message);
+  if (err.name === "MulterError") {
+    return res.status(400).json({ error: err.message });
+  }
   res.status(500).json({ error: "Internal server error" });
 });
 
