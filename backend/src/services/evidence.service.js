@@ -337,10 +337,18 @@ class EvidenceService {
     return { data, total, page, perPage };
   }
 
+  async downloadEvidence(id) {
+    const ev = await prisma.evidence.findUnique({ where: { id } });
+    if (!ev) return null;
+    const filePath = path.join(__dirname, "../..", ev.filePath);
+    if (!fs.existsSync(filePath)) return null;
+    return { ...ev, filePath };
+  }
+
   async deleteEvidence(id) {
     const ev = await prisma.evidence.findUnique({ where: { id } });
     if (!ev) throw new Error("Evidence not found");
-    const filePath = path.resolve(__dirname, "../..", ev.filePath);
+    const filePath = path.join(__dirname, "../..", ev.filePath);
     try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch {}
     await prisma.evidence.delete({ where: { id } });
     return ev;

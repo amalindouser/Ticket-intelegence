@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Card from "../components/Card";
 
 const FILE_TYPE_COLORS = {
@@ -18,11 +18,35 @@ const FILE_TYPE_ICONS = {
 };
 
 function PreviewModal({ evidence, onClose, onDelete }) {
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState(false);
+  const [contentType, setContentType] = useState(null);
+
+  useEffect(() => {
+    if (!evidence) return;
+    setReady(false);
+    setError(false);
+    setContentType(null);
+
+    fetch(`/api/evidences/${evidence.id}/download`, { method: "HEAD" })
+      .then((r) => {
+        const ct = r.headers.get("Content-Type") || "";
+        setContentType(ct);
+        if (ct.includes("text/html") || !r.ok) {
+          setError(true);
+        } else {
+          setReady(true);
+        }
+      })
+      .catch(() => setError(true));
+  }, [evidence]);
+
   if (!evidence) return null;
 
-  const isImage = evidence.fileType === "image";
-  const isPdf = evidence.fileType === "pdf";
-  const isVideo = evidence.fileType === "video";
+  const downloadUrl = `/api/evidences/${evidence.id}/download`;
+  const isImage = evidence.fileType === "image" && ready;
+  const isPdf = evidence.fileType === "pdf" && ready;
+  const isVideo = evidence.fileType === "video" && ready;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
@@ -31,7 +55,7 @@ function PreviewModal({ evidence, onClose, onDelete }) {
           <h3 className="font-semibold text-lg truncate pr-4">{evidence.fileName}</h3>
           <div className="flex items-center gap-2">
             <button
-              onClick={(e) => { e.stopPropagation(); window.open(evidence.filePath, "_blank"); }}
+              onClick={(e) => { e.stopPropagation(); window.open(downloadUrl, "_blank"); }}
               className="text-primary hover:text-primary-dark text-sm font-medium px-3 py-1 border border-primary rounded-lg"
             >
               Download
@@ -51,20 +75,30 @@ function PreviewModal({ evidence, onClose, onDelete }) {
           </div>
         </div>
         <div className="p-4 space-y-4">
+          {error && (
+            <div className="flex items-center justify-center h-32 bg-red-50 rounded-lg text-red-500 font-medium">
+              Preview file tidak tersedia.
+            </div>
+          )}
+          {!ready && !error && (
+            <div className="flex items-center justify-center h-32 bg-gray-50 rounded-lg text-gray-400">
+              Memuat...
+            </div>
+          )}
           {isImage && (
-            <img src={evidence.filePath} alt={evidence.fileName} className="max-w-full rounded-lg" />
+            <img src={downloadUrl} alt={evidence.fileName} className="max-w-full rounded-lg" />
           )}
           {isPdf && (
-            <iframe src={evidence.filePath} className="w-full h-96 rounded-lg border" title={evidence.fileName} />
+            <iframe src={downloadUrl} className="w-full h-96 rounded-lg border" title={evidence.fileName} />
           )}
           {isVideo && (
             <video controls className="w-full rounded-lg">
-              <source src={evidence.filePath} />
+              <source src={downloadUrl} />
             </video>
           )}
-          {!isImage && !isPdf && !isVideo && (
+          {!error && ready && !isImage && !isPdf && !isVideo && (
             <div className="flex items-center justify-center h-32 bg-gray-50 rounded-lg text-gray-400">
-              <a href={evidence.filePath} target="_blank" rel="noreferrer" className="text-primary underline">Download {evidence.fileName}</a>
+              <a href={downloadUrl} target="_blank" rel="noreferrer" className="text-primary underline">Download {evidence.fileName}</a>
             </div>
           )}
           <div className="grid grid-cols-2 gap-4 text-sm">
@@ -262,7 +296,7 @@ export default function Evidences() {
                         <button
                           className="text-primary hover:text-primary-dark text-sm font-medium mr-2"
                           title="Download"
-                          onClick={(e) => { e.stopPropagation(); window.open(ev.filePath, "_blank"); }}
+                          onClick={(e) => { e.stopPropagation(); window.open(`/api/evidences/${ev.id}/download`, "_blank"); }}
                         >
                           Download
                         </button>

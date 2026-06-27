@@ -35,6 +35,15 @@ export async function listEvidences(req, res, next) {
   } catch (err) { next(err); }
 }
 
+export async function downloadEvidence(req, res, next) {
+  try {
+    const ev = await evidenceService.downloadEvidence(req.params.id);
+    if (!ev) return res.status(404).json({ error: "Evidence tidak ditemukan" });
+    res.setHeader("Content-Disposition", `inline; filename="${ev.fileName}"`);
+    res.sendFile(ev.filePath);
+  } catch (err) { next(err); }
+}
+
 export async function deleteEvidence(req, res, next) {
   try {
     await evidenceService.deleteEvidence(req.params.id);
