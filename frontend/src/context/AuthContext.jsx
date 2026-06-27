@@ -1,5 +1,19 @@
 import { createContext, useContext, useState, useEffect } from "react";
 
+const origFetch = typeof window !== "undefined" ? window.fetch : null;
+if (origFetch) {
+  window.fetch = function (input, init = {}) {
+    const token = localStorage.getItem("token");
+    if (token) {
+      init.headers = init.headers || {};
+      if (!init.headers.Authorization && !init.headers.authorization) {
+        init.headers.Authorization = `Bearer ${token}`;
+      }
+    }
+    return origFetch.call(this, input, init);
+  };
+}
+
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
