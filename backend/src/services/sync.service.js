@@ -5,6 +5,7 @@ import freshdesk from "./freshdesk.service.js";
 import ticketRepository from "../repositories/ticket.repository.js";
 import evidenceService, { extractInlineImages } from "./evidence.service.js";
 import relationService from "./relation.service.js";
+import prisma from "../config/prisma.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = path.resolve(__dirname, "../../uploads");
@@ -61,9 +62,9 @@ class SyncService {
     if (!subject) return null;
     if (/\bJLI\b/i.test(subject)) return "1001";
     if (/PJ Medan|Medan.*Accasia|Medan.*(BCA|MAA)|Koridor Khusus|Teknisi Medan|Dishub.*Banjarmasin/i.test(subject)) return "1002";
-    if (/FinOps|Refund|settlement|not yet settlement|daily finops|update query|query.*finops/i.test(subject)) return "1003";
+    if (/FinOps|Refund|settlement|not yet settlement|daily finops|update query|query.*finops|selisih.*transaksi|perbedaan.*transaksi|OPEN TICKET.*RECON|rekon|rekonsiliasi/i.test(subject)) return "1003";
     if (/QRIS|BJB|Parkir|parkir/i.test(subject)) return "1004";
-    if (/E-Ticket|E Ticket|Pembayaran Berhasil|INSERT DATA TRANSAKSI/i.test(subject)) return "1005";
+    if (/E-Ticket|E Ticket|Pembayaran Berhasil|INSERT DATA TRANSAKSI|blokir kartu|buka blokir|pemblokiran/i.test(subject)) return "1005";
     if (/Tol Warju|Warju.*BCA|DBPool/i.test(subject)) return "1006";
     if (/Agathis|TMR/i.test(subject)) return "1007";
     if (/Permohonan Data|Request.*Ticket|penarikan data|tarikan data/i.test(subject)) return "1008";
@@ -72,9 +73,9 @@ class SyncService {
     if (/Ezitama/i.test(subject)) return "1011";
     if (/EOI|Expression Of Interests|Vendor/i.test(subject)) return "1012";
     if (/Internal AINO|Old Platform|IWM|Server OldPlatform/i.test(subject)) return "1013";
-    if (/Spam|Luxury Watches|Limited-Time Offer|No Reply.*Invoice/i.test(subject)) return "1014";
+    if (/Spam|Luxury Watches|Limited-Time Offer|No Reply.*Invoice|Watches from/i.test(subject)) return "1014";
     if (/Jasa Sarana|\[JS\]/i.test(subject)) return "1015";
-    if (/DCSA/i.test(subject)) return "1016";
+    if (/DCSA|sftp|File Konsolidasi|Folder.*Konsolidasi/i.test(subject)) return "1016";
     return null;
   }
 
@@ -105,6 +106,7 @@ class SyncService {
           }
 
           await this._syncParticipants(ticket.id, ft, mapped.requesterEmail);
+          await this._assignGroupFromToParticipants(ticket.id, ft);
 
           try {
             const conversations = await freshdesk.getConversations(ft.id);
@@ -231,6 +233,7 @@ class SyncService {
     }
 
     await this._syncParticipants(ticket.id, ft, mapped.requesterEmail);
+    await this._assignGroupFromToParticipants(ticket.id, ft);
 
     try { await relationService.detectRelations(); } catch {}
 
@@ -253,6 +256,7 @@ class SyncService {
         synced++;
       }
       await this._syncParticipants(ticket.id, ft, mapped.requesterEmail);
+      await this._assignGroupFromToParticipants(ticket.id, ft);
       try {
         const conversations = await freshdesk.getConversations(ft.id);
         if (conversations.length > 0) {
@@ -307,6 +311,52 @@ class SyncService {
     if (email) {
       await ticketRepository.syncParticipants(ticketId, [email], "requester");
     }
+  }
+
+  async _assignGroupFromToParticipants(ticketId, ft) {
+    const toEmails = ft.to_emails;
+    if (!Array.isArray(toEmails) || toEmails.length === 0) return;
+
+    const mappings = await prisma.groupMapping.findMany({
+      where: { escalationEmail: { not: null } },
+      select: { groupId: true, groupName: true, escalationEmail: true },
+    });
+    if (mappings.length === 0) return;
+
+    const matchedEmails = toEmails.map((e) => e.toLowerCase());
+    const candidates = mappings.filter((m) =>
+      m.escalationEmail.split(",").some((em) => matchedEmails.includes(em.trim().toLowerCase()))
+    );
+    if (candidates.length === 0) return;
+
+    const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
+    if (!ticket) return;
+
+    let target = candidates[0];
+    if (candidates.length > 1) {
+      const detected = this._detectGroupFromSubject(ticket.subject);
+      const bySubject = candidates.find((c) => c.groupId === detected);
+      if (bySubject) target = bySubject;
+    }
+
+    if (ticket.assignedGroup === target.groupId) return;
+
+    await ticketRepository.saveChanges(ticket, {
+      assignedGroup: target.groupId,
+      _movedBy: "System (To-participant)",
+    });
+    await ticketRepository.update(ticket.id, {
+      freshdeskTicketId: ticket.freshdeskTicketId,
+      subject: ticket.subject,
+      description: ticket.description,
+      status: ticket.status,
+      priority: ticket.priority,
+      requesterEmail: ticket.requesterEmail,
+      assignedGroup: target.groupId,
+      assignedAgent: ticket.assignedAgent,
+      tags: ticket.tags,
+      updatedAt: new Date(),
+    });
   }
 
   _getAttachmentUrl(att) {

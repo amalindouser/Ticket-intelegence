@@ -2,7 +2,7 @@ import prisma from "../config/prisma.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "ticket-intel-secret-key-2026";
+const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES = "7d";
 
 export async function login(email, password) {

@@ -116,6 +116,7 @@ class TicketRepository {
         skip,
         take: perPage,
         orderBy: { createdAt: "desc" },
+        include: { participants: true },
       }),
       prisma.ticket.count(),
     ]);

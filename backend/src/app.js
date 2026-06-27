@@ -1,6 +1,8 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import path from "path";
 import { fileURLToPath } from "url";
 import prisma from "./config/prisma.js";
@@ -9,6 +11,7 @@ import syncService from "./services/sync.service.js";
 import ticketHistoriesService from "./services/ticket-histories.service.js";
 import ticketConversationsService from "./services/ticket-conversations.service.js";
 import relationService from "./services/relation.service.js";
+import { authMiddleware } from "./services/auth.service.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -20,10 +23,41 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const POLL_INTERVAL = 25_000;
 
-app.use(cors());
-app.use(express.json());
+app.use(helmet());
+
+const corsOrigin = process.env.CORS_ORIGIN || "https://amalindo.my.id";
+app.use(cors({
+  origin: corsOrigin.split(",").map(s => s.trim()),
+  credentials: true,
+}));
+
+app.use(express.json({ limit: "10mb" }));
+
+const generalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests" },
+});
+app.use("/api", generalLimiter);
+
+const loginLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many login attempts" },
+});
+app.use("/api/auth/login", loginLimiter);
 
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+
+app.use("/api", (req, res, next) => {
+  if (req.method === "OPTIONS") return next();
+  if (req.path.startsWith("/auth/login")) return next();
+  authMiddleware(req, res, next);
+});
 
 app.use("/api", routes);
 
