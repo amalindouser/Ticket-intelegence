@@ -365,7 +365,8 @@ class EvidenceService {
     const ev = await prisma.evidence.findUnique({ where: { id } });
     if (!ev) return null;
     const uploadsDir = path.resolve(__dirname, "../../uploads");
-    const filePath = path.resolve(path.join(__dirname, "../..", ev.filePath));
+    const relativePath = ev.filePath.startsWith("/") ? ev.filePath.slice(1) : ev.filePath;
+    const filePath = path.resolve(__dirname, "../..", relativePath);
     if (!filePath.startsWith(uploadsDir)) return null;
     if (!fs.existsSync(filePath)) return null;
     return { ...ev, filePath };
@@ -375,7 +376,8 @@ class EvidenceService {
     const ev = await prisma.evidence.findUnique({ where: { id } });
     if (!ev) throw new Error("Evidence not found");
     const uploadsDir = path.resolve(__dirname, "../../uploads");
-    const filePath = path.resolve(path.join(__dirname, "../..", ev.filePath));
+    const relativePath = ev.filePath.startsWith("/") ? ev.filePath.slice(1) : ev.filePath;
+    const filePath = path.resolve(__dirname, "../..", relativePath);
     if (!filePath.startsWith(uploadsDir)) throw new Error("Invalid file path");
     try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch {}
     await prisma.evidence.delete({ where: { id } });

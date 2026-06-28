@@ -24,7 +24,6 @@ async function fetchBlob(url) {
   const res = await fetch(url, { headers });
   if (!res.ok) throw new Error("Gagal mengambil file");
   const ct = res.headers.get("Content-Type") || "";
-  if (ct.includes("text/html")) throw new Error("Preview file tidak tersedia");
   const blob = await res.blob();
   return { blob, contentType: ct };
 }
@@ -77,9 +76,17 @@ function PreviewModal({ evidence, onClose, onDelete }) {
 
   if (!evidence) return null;
 
+  const ext = evidence.fileName?.toLowerCase().split('.').pop() || '';
   const isImage = blobUrl && contentType.startsWith("image/");
-  const isPdf = blobUrl && contentType.includes("pdf");
+  const isPdf = blobUrl && (contentType.includes("pdf") || ext === "pdf");
   const isVideo = blobUrl && contentType.startsWith("video/");
+  const isAudio = blobUrl && contentType.startsWith("audio/");
+  const isText = blobUrl && (
+    contentType.startsWith("text/") ||
+    ["txt","csv","log","json","xml","md","html","js","ts","py","css","yml","yaml"].includes(ext)
+  );
+  const isHtmlError = blobUrl && contentType.includes("text/html") && ext !== "html";
+  const canPreview = isImage || isPdf || isVideo || isAudio || isText;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
@@ -122,14 +129,27 @@ function PreviewModal({ evidence, onClose, onDelete }) {
             <img src={blobUrl} alt={evidence.fileName} className="max-w-full rounded-lg" />
           )}
           {isPdf && (
-            <iframe src={blobUrl} className="w-full h-96 rounded-lg border" title={evidence.fileName} />
+            <embed src={blobUrl} type="application/pdf" className="w-full h-96 rounded-lg border" />
           )}
           {isVideo && (
             <video controls className="w-full rounded-lg">
               <source src={blobUrl} />
             </video>
           )}
-          {!error && !loading && blobUrl && !isImage && !isPdf && !isVideo && (
+          {isAudio && (
+            <audio controls className="w-full">
+              <source src={blobUrl} />
+            </audio>
+          )}
+          {isText && (
+            <iframe src={blobUrl} className="w-full h-64 rounded-lg border" title={evidence.fileName} />
+          )}
+          {isHtmlError && (
+            <div className="flex items-center justify-center h-32 bg-red-50 rounded-lg text-red-500 font-medium">
+              Preview file tidak tersedia.
+            </div>
+          )}
+          {!error && !loading && blobUrl && !canPreview && !isHtmlError && (
             <div className="flex items-center justify-center h-32 bg-gray-50 rounded-lg text-gray-400">
               <button onClick={handleDownload} className="text-primary underline text-sm">Download {evidence.fileName}</button>
             </div>
