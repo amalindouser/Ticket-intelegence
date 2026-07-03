@@ -41,8 +41,16 @@ export async function downloadEvidence(req, res, next) {
     if (!ev) return res.status(404).json({ error: "Evidence tidak ditemukan" });
     const safeName = ev.fileName.replace(/[^\w.\- ]/g, "_");
     res.setHeader("Content-Disposition", `inline; filename="${safeName}"`);
-    res.sendFile(ev.filePath);
-  } catch (err) { next(err); }
+    res.sendFile(ev.filePath, (err) => {
+      if (err) {
+        console.error("sendFile error:", err.message);
+        res.status(500).json({ error: "Gagal mengirim file" });
+      }
+    });
+  } catch (err) {
+    console.error("downloadEvidence error:", err.message);
+    next(err);
+  }
 }
 
 export async function deleteEvidence(req, res, next) {

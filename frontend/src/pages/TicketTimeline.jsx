@@ -68,6 +68,17 @@ export default function TicketTimeline() {
 
   const timeline = [
     { type: "created", timestamp: ticket.createdAt, label: "Ticket Created", detail: "Ticket dibuat oleh requester" },
+    ...(ticket.description
+      ? [{
+          type: "customer_reply",
+          timestamp: ticket.createdAt,
+          label: "Initial Message",
+          actor: ticket.requesterEmail || "Requester",
+          body: ticket.description,
+          isAgent: false,
+        }]
+      : []
+    ),
     ...histories.map((h) => ({
       type: h.changedField,
       timestamp: h.createdAt,

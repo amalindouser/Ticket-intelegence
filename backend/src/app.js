@@ -20,6 +20,7 @@ BigInt.prototype.toJSON = function () {
 };
 
 const app = express();
+app.set("trust proxy", 1);
 const PORT = process.env.PORT || 3000;
 const POLL_INTERVAL = 25_000;
 

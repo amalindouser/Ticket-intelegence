@@ -57,7 +57,10 @@ function PreviewModal({ evidence, onClose, onDelete }) {
         setContentType(contentType);
         setBlobUrl(URL.createObjectURL(blob));
       })
-      .catch(() => setError(true))
+      .catch((err) => {
+        setError(true);
+        console.error("Preview error:", err.message);
+      })
       .finally(() => setLoading(false));
 
     return () => {
