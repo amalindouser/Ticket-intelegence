@@ -392,7 +392,7 @@ class SyncService {
     const ext = path.extname(filename) || ".bin";
     const safe = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
     const dest = path.join(UPLOAD_DIR, safe);
-    const isS3 = url.includes("s3.amazonaws.com") || url.includes("freshdesk.com");
+    const isS3 = url.includes("s3.amazonaws.com") || url.includes("s3-");
     try {
       const res = await fetch(url, {
         headers: isS3 ? {} : { Authorization: freshdesk.authHeader() },
