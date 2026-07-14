@@ -153,7 +153,7 @@ class ClusteringService {
           status: t.status,
           priority: t.priority,
           requesterEmail: t.requesterEmail,
-          assignedGroup: t.assignedGroup,
+          assignedGroup: groupMap[t.assignedGroup] || t.assignedGroup || "-",
           createdAt: t.createdAt,
         }));
 

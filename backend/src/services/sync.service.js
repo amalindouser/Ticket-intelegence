@@ -79,7 +79,7 @@ class SyncService {
     if (/\bJLI\b/i.test(subject)) return "1001";
     if (/Jasa Sarana|\[JS\]/i.test(subject)) return "1015";
     if (/PJ Medan|Medan.*Accasia|Medan.*(BCA|MAA)|Koridor Khusus|Teknisi Medan|Dishub.*Banjarmasin|Penambahan.*Interop|Interop.*ID/i.test(subject)) return "1002";
-    if (/FinOps|Refund|settlement|not yet settlement|daily finops|update query|query.*finops|selisih.*transaksi|perbedaan.*transaksi|OPEN TICKET.*RECON|rekon|rekonsiliasi|TRX INVALID BALANCE|invalid balance/i.test(subject)) return "1003";
+    if (/FinOps|Refund|settlement|not yet settlement|daily finops|update query|query.*finops|selisih.*transaksi|perbedaan.*transaksi|OPEN TICKET.*RECON|rekon|rekonsiliasi|TRX INVALID BALANCE|invalid balance|kendala tarif|tarif.*terpotong|terpotong.*menit/i.test(subject)) return "1003";
     if (/QRIS|BJB|Parkir|parkir|emoney|tapcash|topup|TapCash/i.test(subject)) return "1004";
     if (/E-Ticket|E Ticket|Pembayaran Berhasil|INSERT DATA TRANSAKSI|blokir kartu|buka blokir|pemblokiran/i.test(subject)) return "1005";
     if (/Tol Warju|Warju.*BCA|DBPool|Tol Desari|Desari/i.test(subject)) return "1006";

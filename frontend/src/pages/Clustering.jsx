@@ -177,7 +177,7 @@ export default function Clustering() {
                             <tr key={t.ticketId} className="border-b hover:bg-gray-50">
                               <td className="px-2 py-1 font-mono text-xs">#{t.ticketId}</td>
                               <td className="px-2 py-1 text-xs max-w-[200px] truncate">{t.subject}</td>
-                              <td className="px-2 py-1 text-xs text-gray-500">{t.assignedGroup}</td>
+                              <td className="px-2 py-1 text-xs text-gray-500">{t.assignedGroup || "-"}</td>
                               <td className="px-2 py-1 text-xs">{STATUS_LABELS[t.status] || t.status}</td>
                               <td className="px-2 py-1"><span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${PRIORITY_COLORS[t.priority] || "bg-gray-100"}`}>{PRIORITY_LABELS[t.priority] || t.priority}</span></td>
                               <td className="px-2 py-1 text-xs text-gray-500">{new Date(t.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}</td>
