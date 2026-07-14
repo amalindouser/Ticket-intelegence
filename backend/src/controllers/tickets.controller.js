@@ -1,8 +1,13 @@
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import prisma from "../config/prisma.js";
 import ticketRepository from "../repositories/ticket.repository.js";
 import syncService from "../services/sync.service.js";
 import freshdesk from "../services/freshdesk.service.js";
 import { generateReply, generateEscalation } from "../services/ai.service.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export async function listTickets(req, res, next) {
   try {
@@ -112,6 +117,24 @@ export async function aiEscalation(req, res, next) {
   try {
     const result = await generateEscalation(req.params.id);
     res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function downloadAttachment(req, res, next) {
+  try {
+    const attachment = await prisma.attachment.findUnique({ where: { id: req.params.id } });
+    if (!attachment || !attachment.attachmentUrl) {
+      return res.status(404).json({ error: "Attachment not found" });
+    }
+    const filePath = path.resolve(__dirname, "../../..", attachment.attachmentUrl.replace(/^\//, ""));
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: "File not found on server" });
+    }
+    res.setHeader("Content-Disposition", `inline; filename="${attachment.filename}"`);
+    if (attachment.contentType) res.setHeader("Content-Type", attachment.contentType);
+    res.sendFile(filePath);
   } catch (err) {
     next(err);
   }

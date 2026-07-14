@@ -9,6 +9,7 @@ import {
   getSuggestions,
   aiReply,
   aiEscalation,
+  downloadAttachment,
 } from "../controllers/tickets.controller.js";
 import { getTicketEvidences } from "../controllers/evidence.controller.js";
 
@@ -24,5 +25,6 @@ router.post("/:id/ai-escalation", aiEscalation);
 router.get("/:id", getTicket);
 router.post("/sync", syncTickets);
 router.post("/sync/:freshdeskId", syncSingleTicket);
+router.get("/attachments/:id/download", downloadAttachment);
 
 export default router;
