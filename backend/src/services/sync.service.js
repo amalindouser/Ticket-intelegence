@@ -425,7 +425,7 @@ class SyncService {
       status: ft.status,
       priority: ft.priority,
       requesterEmail: null,
-      assignedGroup: ft.group_name || (ft.group_id ? String(ft.group_id) : null),
+      assignedGroup: ft.group_name || null,
       assignedAgent: ft.responder_name || ft.agent_name || (ft.responder_id ? String(ft.responder_id) : null),
       tags,
       createdAt: new Date(ft.created_at),
