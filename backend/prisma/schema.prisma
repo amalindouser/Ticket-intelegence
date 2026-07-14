@@ -105,11 +105,12 @@ model TicketHistory {
 }
 
 model GroupMapping {
-  id              String   @id @default(uuid()) @db.Uuid
-  groupId         String   @unique @map("group_id")
-  groupName       String   @map("group_name")
-  escalationEmail String?  @map("escalation_email")
-  createdAt       DateTime @map("created_at") @default(now())
+  id                String   @id @default(uuid()) @db.Uuid
+  groupId           String   @unique @map("group_id")
+  groupName         String   @map("group_name")
+  escalationEmail   String?  @map("escalation_email")
+  freshdeskGroupId  BigInt?  @unique @map("freshdesk_group_id")
+  createdAt         DateTime @map("created_at") @default(now())
 
   @@map("group_mappings")
 }

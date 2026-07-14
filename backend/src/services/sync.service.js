@@ -45,10 +45,18 @@ class SyncService {
     const mapped = this._mapTicket(ft);
     mapped.requesterEmail = await this._resolveRequesterEmail(ft);
     const rawGroup = mapped.assignedGroup;
+
     if (existingTicket && existingTicket.assignedGroup && /^10\d{2}$/.test(existingTicket.assignedGroup)) {
       mapped.assignedGroup = existingTicket.assignedGroup;
     } else {
-      const detected = this._detectGroupFromSubject(ft.subject || existingTicket?.subject);
+      let detected = this._detectGroupFromSubject(ft.subject || existingTicket?.subject);
+      if (!detected && ft.group_id) {
+        const byFdGroup = await prisma.groupMapping.findUnique({
+          where: { freshdeskGroupId: ft.group_id },
+          select: { groupId: true },
+        });
+        if (byFdGroup) detected = byFdGroup.groupId;
+      }
       if (detected) mapped.assignedGroup = detected;
     }
     if (rawGroup !== mapped.assignedGroup) {
@@ -60,21 +68,29 @@ class SyncService {
 
   _detectGroupFromSubject(subject) {
     if (!subject) return null;
+
+    // 1. Prefix-based detection (highest priority — tag brackets like [JS], [JLI])
+    if (/^\[JLI\]/i.test(subject)) return "1001";
+    if (/^\[JS\]/i.test(subject)) return "1015";
+    if (/^\[Tol/i.test(subject)) return "1006";
+    if (/^\[Qontak/i.test(subject)) return null; // Qontak system tickets — no group
+
+    // 2. Keyword-based by specific group
     if (/\bJLI\b/i.test(subject)) return "1001";
-    if (/PJ Medan|Medan.*Accasia|Medan.*(BCA|MAA)|Koridor Khusus|Teknisi Medan|Dishub.*Banjarmasin/i.test(subject)) return "1002";
-    if (/FinOps|Refund|settlement|not yet settlement|daily finops|update query|query.*finops|selisih.*transaksi|perbedaan.*transaksi|OPEN TICKET.*RECON|rekon|rekonsiliasi/i.test(subject)) return "1003";
-    if (/QRIS|BJB|Parkir|parkir/i.test(subject)) return "1004";
+    if (/Jasa Sarana|\[JS\]/i.test(subject)) return "1015";
+    if (/PJ Medan|Medan.*Accasia|Medan.*(BCA|MAA)|Koridor Khusus|Teknisi Medan|Dishub.*Banjarmasin|Penambahan.*Interop|Interop.*ID/i.test(subject)) return "1002";
+    if (/FinOps|Refund|settlement|not yet settlement|daily finops|update query|query.*finops|selisih.*transaksi|perbedaan.*transaksi|OPEN TICKET.*RECON|rekon|rekonsiliasi|TRX INVALID BALANCE|invalid balance/i.test(subject)) return "1003";
+    if (/QRIS|BJB|Parkir|parkir|emoney|tapcash|topup|TapCash/i.test(subject)) return "1004";
     if (/E-Ticket|E Ticket|Pembayaran Berhasil|INSERT DATA TRANSAKSI|blokir kartu|buka blokir|pemblokiran/i.test(subject)) return "1005";
-    if (/Tol Warju|Warju.*BCA|DBPool/i.test(subject)) return "1006";
+    if (/Tol Warju|Warju.*BCA|DBPool|Tol Desari|Desari/i.test(subject)) return "1006";
     if (/Agathis|TMR/i.test(subject)) return "1007";
-    if (/Permohonan Data|Request.*Ticket|penarikan data|tarikan data/i.test(subject)) return "1008";
-    if (/Hak Akses|Hak Ases|permintaan.*akses|Akses.*SVD|AKUN.*BO/i.test(subject)) return "1009";
-    if (/Deployment|Perubahan TI|Pengajuan Perubahan/i.test(subject)) return "1010";
+    if (/Permohonan Data|Request.*Ticket|penarikan data|tarikan data|permohonan.*komunikasi|komunikasi.*karyawan/i.test(subject)) return "1008";
+    if (/Hak Akses|Hak Ases|permintaan.*akses|Akses.*SVD|AKUN.*BO|akses.*ssh|akses.*server|akses.*db/i.test(subject)) return "1009";
+    if (/Deployment|Perubahan TI|Pengajuan Perubahan|hotfix|pwa.*backend|service.*pwa/i.test(subject)) return "1010";
     if (/Ezitama/i.test(subject)) return "1011";
     if (/EOI|Expression Of Interests|Vendor/i.test(subject)) return "1012";
     if (/Internal AINO|Old Platform|IWM|Server OldPlatform/i.test(subject)) return "1013";
-    if (/Spam|Luxury Watches|Limited-Time Offer|No Reply.*Invoice|Watches from/i.test(subject)) return "1014";
-    if (/Jasa Sarana|\[JS\]/i.test(subject)) return "1015";
+    if (/Spam|Luxury Watches|Limited-Time Offer|No Reply.*Invoice|Watches from|Kode Verifikasi|kode.*otp/i.test(subject)) return "1014";
     if (/DCSA|sftp|File Konsolidasi|Folder.*Konsolidasi/i.test(subject)) return "1016";
     return null;
   }
