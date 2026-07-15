@@ -11,6 +11,8 @@ services:
       FRESHDESK_API_KEY: ${FRESHDESK_API_KEY}
       AI_PROVIDER: ${AI_PROVIDER}
       AI_API_KEY: ${AI_API_KEY}
+      AI_API_URL: ${AI_API_URL}
+      AI_MODEL: ${AI_MODEL}
       JWT_SECRET: ${JWT_SECRET}
       PORT: 3001
     volumes:
