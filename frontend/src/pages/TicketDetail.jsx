@@ -4,6 +4,21 @@ import Timeline from "../components/Timeline";
 import Card from "../components/Card";
 import useGroupMappings from "../hooks/useGroupMappings";
 
+async function openFile(url) {
+  const token = localStorage.getItem("token");
+  const headers = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  try {
+    const res = await fetch(url, { headers });
+    if (!res.ok) return alert("Gagal membuka file");
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    window.open(blobUrl, "_blank");
+  } catch (e) {
+    alert("Gagal membuka file");
+  }
+}
+
 const STATUS = ["", "", "Open", "Pending", "Resolved", "Closed"];
 const PRIORITY = ["", "Low", "Medium", "High", "Urgent"];
 
@@ -157,7 +172,7 @@ export default function TicketDetail() {
           <div className="space-y-1.5">
             {ticket.attachments.map((a) => (
               <div key={a.id} className="flex items-center gap-2 text-sm">
-                <a href={a.attachmentUrl && !a.attachmentUrl.startsWith("javascript:") ? `/api/tickets/attachments/${a.id}/download` : "#"} target="_blank" rel="noopener noreferrer" className="text-primary font-medium hover:underline">{a.filename}</a>
+                <a href="#" onClick={(e) => { e.preventDefault(); openFile(`/api/tickets/attachments/${a.id}/download`); }} className="text-primary font-medium hover:underline cursor-pointer">{a.filename}</a>
                 {a.contentType && <span className="text-gray-400 text-xs">({a.contentType})</span>}
                 {a.fileSize && <span className="text-gray-300 text-xs">{formatSize(a.fileSize)}</span>}
               </div>
@@ -183,7 +198,7 @@ export default function TicketDetail() {
                       <p className="text-xs font-semibold text-gray-400 mb-1">Evidence:</p>
                       {e.attachments.map((a) => (
                         <div key={a.id} className="text-sm py-0.5">
-                          <a href={a.attachmentUrl && !a.attachmentUrl.startsWith("javascript:") ? `/api/tickets/attachments/${a.id}/download` : "#"} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{a.filename}</a>
+                          <a href="#" onClick={(e) => { e.preventDefault(); openFile(`/api/tickets/attachments/${a.id}/download`); }} className="text-primary hover:underline cursor-pointer">{a.filename}</a>
                         </div>
                       ))}
                     </div>
