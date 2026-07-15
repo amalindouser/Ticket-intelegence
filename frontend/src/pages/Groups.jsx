@@ -8,6 +8,8 @@ export default function Groups() {
   const [escalationEmail, setEscalationEmail] = useState("");
   const [editing, setEditing] = useState(null);
   const [error, setError] = useState("");
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState("");
 
   async function load() {
     try {
@@ -15,6 +17,20 @@ export default function Groups() {
       setMappings(await res.json());
     } catch {}
     setLoading(false);
+  }
+
+  async function syncFromFd() {
+    setSyncing(true);
+    setSyncMsg("");
+    try {
+      const res = await fetch("/api/groups/sync-from-freshdesk", { method: "POST" });
+      const data = await res.json();
+      setSyncMsg(`Matched ${data.matched} group(s), ${data.unmatched} unmatched (${data.totalFdGroups} groups from Freshdesk)`);
+      await load();
+    } catch (err) {
+      setSyncMsg("Error: " + err.message);
+    }
+    setSyncing(false);
   }
 
   useEffect(() => { load(); }, []);
@@ -57,10 +73,19 @@ export default function Groups() {
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      <h1 className="text-2xl font-bold">Group Mappings</h1>
-      <p className="text-sm text-gray-500">
-        Map Freshdesk group IDs to readable names and escalation contact emails. The escalation email will appear in chatbot recommendations.
-      </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Group Mappings</h1>
+          <p className="text-sm text-gray-500">
+            Map Freshdesk group IDs to readable names and escalation contact emails. The escalation email will appear in chatbot recommendations.
+          </p>
+        </div>
+        <button onClick={syncFromFd} disabled={syncing}
+          className="bg-green-600 text-white px-4 py-2 rounded text-sm hover:opacity-90 transition-all duration-200 btn-press disabled:opacity-50 whitespace-nowrap">
+          {syncing ? "Syncing..." : "Sync from Freshdesk"}
+        </button>
+      </div>
+      {syncMsg && <p className="text-sm text-green-600">{syncMsg}</p>}
 
       <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end flex-wrap">
         <div className="w-full sm:w-44">
@@ -103,6 +128,7 @@ export default function Groups() {
               <tr className="bg-gray-50 text-left">
                 <th className="px-4 py-3 font-medium">Group ID</th>
                 <th className="px-4 py-3 font-medium">Group Name</th>
+                <th className="px-4 py-3 font-medium">FD Group ID</th>
                 <th className="px-4 py-3 font-medium">Escalation Email</th>
                 <th className="px-4 py-3 font-medium">Action</th>
               </tr>
@@ -112,6 +138,7 @@ export default function Groups() {
                 <tr key={m.id} className="border-t">
                   <td className="px-4 py-3 font-mono text-xs">{m.groupId}</td>
                   <td className="px-4 py-3">{m.groupName}</td>
+                  <td className="px-4 py-3 text-xs font-mono">{m.freshdeskGroupId || <span className="text-gray-300">-</span>}</td>
                   <td className="px-4 py-3 text-xs">{m.escalationEmail || <span className="text-gray-300">-</span>}</td>
                   <td className="px-4 py-3 flex gap-2">
                     <button onClick={() => startEdit(m)} className="text-primary hover:underline text-xs">Edit</button>

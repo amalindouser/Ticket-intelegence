@@ -99,6 +99,18 @@ class FreshdeskService {
     return this.request(`/contacts/${contactId}`);
   }
 
+  async getGroups() {
+    let page = 1;
+    let all = [];
+    while (true) {
+      const groups = await this.request(`/groups?page=${page}&per_page=100`);
+      if (groups.length === 0) break;
+      all = all.concat(groups);
+      page++;
+    }
+    return all;
+  }
+
   async *iterateTickets({ startDate, endDate } = {}) {
     let page = 1;
     let hasMore = true;

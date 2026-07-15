@@ -1,4 +1,5 @@
 import prisma from "../config/prisma.js";
+import freshdesk from "../services/freshdesk.service.js";
 
 export async function listMappings(req, res, next) {
   try {
@@ -33,6 +34,32 @@ export async function deleteMapping(req, res, next) {
     const { id } = req.params;
     await prisma.groupMapping.delete({ where: { id } });
     res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function syncFromFreshdesk(req, res, next) {
+  try {
+    const fdGroups = await freshdesk.getGroups();
+    const localMappings = await prisma.groupMapping.findMany();
+    let matched = 0;
+
+    for (const local of localMappings) {
+      const fd = fdGroups.find(
+        (g) => g.name.toLowerCase().trim() === local.groupName.toLowerCase().trim()
+      );
+      if (fd && fd.id !== local.freshdeskGroupId) {
+        await prisma.groupMapping.update({
+          where: { id: local.id },
+          data: { freshdeskGroupId: fd.id },
+        });
+        matched++;
+      }
+    }
+
+    const unmatched = localMappings.length - matched;
+    res.json({ message: "Sync selesai", matched, unmatched, totalFdGroups: fdGroups.length });
   } catch (err) {
     next(err);
   }
