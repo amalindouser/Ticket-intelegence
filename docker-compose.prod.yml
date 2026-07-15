@@ -16,6 +16,13 @@ services:
     volumes:
       - fti_uploads:/app/uploads
 
+  frontend:
+    build: ./frontend
+    container_name: fti-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+
   nginx:
     image: nginx:alpine
     container_name: fti-nginx
