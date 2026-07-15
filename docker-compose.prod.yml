@@ -9,6 +9,8 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       FRESHDESK_DOMAIN: ${FRESHDESK_DOMAIN}
       FRESHDESK_API_KEY: ${FRESHDESK_API_KEY}
+      AI_PROVIDER: ${AI_PROVIDER}
+      AI_API_KEY: ${AI_API_KEY}
       PORT: 3001
     volumes:
       - fti_uploads:/app/uploads
