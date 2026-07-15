@@ -25,6 +25,10 @@ export default function Groups() {
     try {
       const res = await fetch("/api/groups/sync-from-freshdesk", { method: "POST" });
       const data = await res.json();
+      if (!res.ok) {
+        setSyncMsg("Error: " + (data.error || JSON.stringify(data)));
+        return;
+      }
       setSyncMsg(`Matched ${data.matched} group(s), ${data.unmatched} unmatched (${data.totalFdGroups} groups from Freshdesk)`);
       await load();
     } catch (err) {
