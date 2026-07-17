@@ -5,6 +5,9 @@ services:
     build: ./backend
     container_name: fti-backend
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
       DATABASE_URL: ${DATABASE_URL}
       FRESHDESK_DOMAIN: ${FRESHDESK_DOMAIN}
